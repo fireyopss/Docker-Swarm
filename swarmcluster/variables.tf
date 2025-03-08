@@ -1,0 +1,5 @@
+
+
+variable "swarm_details" {
+  
+}

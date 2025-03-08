@@ -1,0 +1,103 @@
+---
+environment: "production"
+cluster_name: "liveclipper_cluster"
+
+region: "eu-west-3"
+ami: "ami-04a4acda26ca36de0"
+
+ssh_key_options:
+  generate_auto: true # auto-generate ssh keys and keeps them in state file
+  jumpbox_key_path: ""
+  worker_key_path: ""
+  manager_key_path: ""
+
+jumpbox:
+  name: "jumpbox"
+  instance_type: "t2.micro"
+  cloud: "aws"
+
+managers:
+  - name: "manager1"
+    instance_type: "t2.micro"
+    cloud: "aws"
+  
+workers:    
+  - name: "worker1"
+    instance_type: "t2.micro"
+    cloud: "aws"
+  
+  - name: "worker2"
+    instance_type: "t2.micro"
+    cloud: "aws"
+
+  - name: "worker3"
+    instance_type: "t2.micro"
+    cloud: "aws"
+
+
+security:
+  jumpbox:
+    egress:
+      - from_port: 0
+        to_port: 0
+        protocol: "-1"
+        cidr_blocks:
+          - "0.0.0.0/0"
+    ingress:
+      - from_port: 22
+        to_port: 22
+        protocol: "tcp"
+        cidr_blocks:
+          - "92.239.148.217/32"  #tayyabs public ip, only allow ssh from this ip
+  manager:
+    ingress:
+      - from_port: 22
+        to_port: 22
+        protocol: "tcp"
+        cidr_blocks:
+          - "jumpbox.ip"
+      
+      - from_port: 2377
+        to_port: 2377
+        protocol: "tcp"
+        cidr_blocks:
+          - "worker.ip"
+      
+      - from_port: 7946
+        to_port: 7946
+        protocol: "tcp"
+        cidr_blocks:
+          - "worker.ip"
+      
+      - from_port: 7946
+        to_port: 7946
+        protocol: "udp"
+        cidr_blocks:
+          - "worker.ip"
+
+    egress:
+      - from_port: 0
+        to_port: 0
+        protocol: "-1"
+        cidr_blocks:
+          - "0.0.0.0/0"
+
+  worker:
+    ingress:
+      - from_port: 22
+        to_port: 22
+        protocol: "tcp"
+        cidr_blocks:
+          - "jumpbox.ip"
+      
+      - from_port: 7946
+        to_port: 7946
+        protocol: "tcp"
+        cidr_blocks:
+          - "0.0.0.0/0"
+    egress:
+      - from_port: 0
+        to_port: 0
+        protocol: "-1"
+        cidr_blocks:
+          - "0.0.0.0/0"
