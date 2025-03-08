@@ -12,7 +12,7 @@ terraform {
 }
 
 locals {
-  swarm_details = yamldecode(file("./infra.yml"))
+  swarm_details = yamldecode(file("./config.yml"))
 }
 
 
