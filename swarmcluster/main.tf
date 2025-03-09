@@ -88,10 +88,7 @@ resource "aws_instance" "jumpbox" {
     }
 }
 
-resource "local_file" "jumpbox_private_key" {
-  content  = tls_private_key.jumpbox_key.private_key_pem
-  filename = "${path.module}/jumpbox.pem"
-}
+
 
 resource "tls_private_key" "manager_key" {
   for_each =  {for idx,instance in var.swarm_details.managers : idx=> instance if var.swarm_details.ssh_key_options.generate_auto}
@@ -163,11 +160,7 @@ resource "aws_instance" "swarm_managers" {
     }
 }
 
-resource "local_file" "manager_private_key" {
-  for_each = aws_key_pair.manager_key
-  content  = tls_private_key.manager_key[each.key].private_key_pem
-  filename = "${path.module}/manager_${each.key}.pem"
-}
+
 
 
 resource "tls_private_key" "worker_key" {
@@ -236,5 +229,39 @@ resource "aws_instance" "worker_nodes" {
         ClusterName = "${var.swarm_details.cluster_name}"
         Name = "${each.value.name}"
         WorkerIndex = "${each.key}"
+    }
+}
+
+
+resource "local_file" "jumpbox_private_key" {
+  content  = tls_private_key.jumpbox_key.private_key_pem
+  filename = "${path.module}/playbooks/keys/jumpbox.pem"
+}
+
+resource "local_file" "manager_private_key" {
+  for_each = aws_key_pair.manager_key
+  content  = tls_private_key.manager_key[each.key].private_key_pem
+  filename = "${path.module}/playbooks/keys/manager_${each.key}.pem"
+}
+
+resource "local_file" "worker_private_key" {
+  for_each = aws_key_pair.worker_key
+  content  = tls_private_key.worker_key[each.key].private_key_pem
+  filename = "${path.module}/playbooks/keys/worker_${each.key}.pem"
+}
+
+resource "local_file" "ansible_hosts" {
+    content  = templatefile("${path.module}/templates/hosts.tftpl", {
+        jumpbox_ip = aws_instance.jumpbox.public_ip,
+        manager_ips = [for instance in aws_instance.swarm_managers : instance.public_ip],
+        worker_ips = [for instance in aws_instance.worker_nodes : instance.public_ip],
+        ssh_user = "ubuntu"
+    })
+    filename = "${path.module}/out/ansible_hosts"
+}
+
+resource "null_resource" "set_key_permissions" {
+    provisioner "local-exec" {
+        command = "chmod 600 ${path.module}/playbooks/keys/*.pem"
     }
 }

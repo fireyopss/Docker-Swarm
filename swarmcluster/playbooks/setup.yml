@@ -1,0 +1,17 @@
+---
+- name: Setup
+  hosts: jumpbox
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+
+- name: Setup
+  hosts: manager
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes

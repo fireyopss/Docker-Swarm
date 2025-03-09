@@ -1,0 +1,21 @@
+
+[jumpbox]
+${jumpbox_ip} ansible_ssh_private_key_file=keys/jumpbox.pem ansible_user=${ssh_user}
+
+[manager]
+%{ for idx,s in manager_ips ~}
+${s} ansible_ssh_private_key_file=keys/manager_${idx}.pem ansible_user=${ssh_user}
+%{ endfor ~}
+
+[worker]
+%{ for idx,s in worker_ips ~}
+${s} ansible_ssh_private_key_file=keys/worker_${idx}.pem ansible_user=${ssh_user}
+%{ endfor ~}
+
+
+
+[manager:vars]
+ansible_ssh_common_args='-o ProxyJump=${ssh_user}@${jumpbox_ip}'
+
+[worker:vars]
+ansible_ssh_common_args='-o ProxyJump=${ssh_user}@${jumpbox_ip}'
