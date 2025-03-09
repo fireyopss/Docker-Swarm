@@ -1,18 +1,18 @@
 ---
 
-- name: Setup All Managers with Common 
-  hosts: manager
-  become: true
-  gather_facts: true
-  roles:
-    - common
+# - name: Setup All Managers with Common 
+#   hosts: manager
+#   become: true
+#   gather_facts: true
+#   roles:
+#     - common
 
-- name: Setup All Workers with Common
-  hosts: worker
-  become: true
-  gather_facts: true
-  roles:
-    - common
+# - name: Setup All Workers with Common
+#   hosts: worker
+#   become: true
+#   gather_facts: true
+#   roles:
+#     - common
 
 
 - name: Setup lead manager
@@ -56,7 +56,20 @@
     
     - name: remoteadd
       debug:
-        var: "{{groups['manager'][0]}}"
+        var: groups['manager'][0]
+    
+    - name: "loggy"
+      debug:
+        msg: "{{groups['manager'][0]}} = {{ansible_host}}"
+
+    
+    - name: worker token
+      debug:
+        var: worker_token
+    
+    - name: manager token
+      debug:
+        var: manager_token
   
     - name: join swarm as manager
       docker_swarm:

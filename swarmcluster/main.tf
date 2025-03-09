@@ -111,9 +111,18 @@ resource "aws_security_group_rule" "manager_ingress_2377_docker" {
     type              = "ingress"
     security_group_id = aws_security_group.manager_sg.id
     source_security_group_id = aws_security_group.manager_sg.id
-    from_port         = 2377
+    from_port         = 0
     protocol          = "tcp"
-    to_port           = 2377
+    to_port           = 0
+}
+
+resource "aws_security_group_rule" "manager_ingress_23772_docker" {
+    type              = "ingress"
+    security_group_id = aws_security_group.manager_sg.id
+    source_security_group_id = aws_security_group.manager_sg.id
+    from_port         = 0
+    protocol          = "udp"
+    to_port           = 0
 }
 
 resource "aws_security_group_rule" "manager_ingress_rules" {
@@ -126,6 +135,7 @@ resource "aws_security_group_rule" "manager_ingress_rules" {
   cidr_blocks       = flatten([
     for cidr in each.value.cidr_blocks : 
     cidr == "jumpbox.ip" ? ["${aws_instance.jumpbox.public_ip}/32"] :
+    cidr == "manager.ip" ? [for w in aws_instance.swarm_managers : "${w.public_ip}/32"] :
     cidr == "worker.ip" ? [for w in aws_instance.worker_nodes : "${w.public_ip}/32"] :
     [cidr]
     
