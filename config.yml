@@ -78,12 +78,14 @@ security:
         protocol: "tcp"
         cidr_blocks:
           - "worker.ip"
+          - "manager.ip"
       
       - from_port: 7946
         to_port: 7946
         protocol: "udp"
         cidr_blocks:
           - "worker.ip"
+          - "manager.ip"
 
     egress:
       - from_port: 0

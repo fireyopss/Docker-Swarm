@@ -7,12 +7,12 @@
 #   roles:
 #     - common
 
-# - name: Setup All Workers with Common
-#   hosts: worker
-#   become: true
-#   gather_facts: true
-#   roles:
-#     - common
+- name: Setup All Workers with Common
+  hosts: worker
+  become: true
+  gather_facts: true
+  roles:
+    - common
 
 
 - name: Setup lead manager
@@ -40,8 +40,25 @@
         var: manager_token
     
 
-- name: Setup other managers
-  hosts: manager[1:]
+# - name: Setup other managers
+#   hosts: manager[1:]
+#   become: true
+#   gather_facts: true
+#   tasks:
+#     - name: Retrieve worker and manager tokens from the lead manager
+#       set_fact:
+#         worker_token: "{{hostvars[groups['manager'][0]].worker_token}}"
+#         manager_token: "{{hostvars[groups['manager'][0]].manager_token}}"
+      
+#     - name: join swarm as manager
+#       docker_swarm:
+#         state: join
+#         advertise_addr: "{{ ansible_host }}"
+#         join_token: "{{ manager_token }}"
+#         remote_addrs: "{{groups['manager'][0]}}"
+
+- name: Setup The Workers
+  hosts: worker
   become: true
   gather_facts: true
   tasks:
@@ -50,32 +67,11 @@
         worker_token: "{{hostvars[groups['manager'][0]].worker_token}}"
         manager_token: "{{hostvars[groups['manager'][0]].manager_token}}"
     
-    - name: debug
-      debug:
-        var: ansible_host
-    
-    - name: remoteadd
-      debug:
-        var: groups['manager'][0]
-    
-    - name: "loggy"
-      debug:
-        msg: "{{groups['manager'][0]}} = {{ansible_host}}"
-
-    
-    - name: worker token
-      debug:
-        var: worker_token
-    
-    - name: manager token
-      debug:
-        var: manager_token
-  
-    - name: join swarm as manager
+    - name: join swarm as worker
       docker_swarm:
         state: join
         advertise_addr: "{{ ansible_host }}"
-        join_token: "{{ manager_token }}"
+        join_token: "{{ worker_token }}"
         remote_addrs: "{{groups['manager'][0]}}"
     
    
