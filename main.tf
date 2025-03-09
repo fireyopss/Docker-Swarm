@@ -4,15 +4,28 @@ terraform {
       source  = "hashicorp/aws"
       version = "5.90.0"
     }
-    digitalocean = {
-      source  = "digitalocean/digitalocean"
-      version = "~> 2.0"
+      digitalocean = {
+      source = "digitalocean/digitalocean"
+      version = "2.49.1"
     }
     tls = {
       source  = "hashicorp/tls"
       version = "4.0.6"
     }
   }
+}
+
+provider "aws" {
+  region = "eu-west-3"
+}
+
+variable "do_token" {
+  type = string
+}
+
+
+provider "digitalocean" {
+  token = var.do_token
 }
 
 locals {
@@ -23,6 +36,20 @@ locals {
 module "swarmcluster" {
   source        = "./swarmcluster"
   swarm_details = local.swarm_details
+  manager_nodes_aws = {
+    for instance in local.swarm_details.managers : instance.name => instance
+      if instance.cloud == "aws"
+  }
+  worker_nodes_aws = {
+    for instance in local.swarm_details.workers : instance.name => instance
+      if instance.cloud == "aws"
+  }
+
+  providers = {
+    aws = aws
+    tls = tls
+    
+  }
 }
 
 output "debug1" {
