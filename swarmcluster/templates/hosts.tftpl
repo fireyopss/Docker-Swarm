@@ -1,15 +1,15 @@
 
 [jumpbox]
-${jumpbox_ip} ansible_ssh_private_key_file=keys/jumpbox.pem ansible_user=${ssh_user}  cluster_type="jumpbox"
+${jumpbox_ip} ansible_ssh_private_key_file=keys/jumpbox.pem ansible_user=${ssh_user}  cluster_type="jumpbox" hostname="jumpbox"
 
 [manager]
 %{ for idx,s in manager_ips ~}
-${s} ansible_ssh_private_key_file=keys/manager_${idx}.pem ansible_user=${ssh_user} cluster_type="manager"
+${s} ansible_ssh_private_key_file=keys/manager_${idx}.pem ansible_user=${ssh_user} cluster_type="manager" hostname="manager${idx}"
 %{ endfor ~}
 
 [worker]
 %{ for idx,s in worker_ips ~}
-${s} ansible_ssh_private_key_file=keys/worker_${idx}.pem ansible_user=${ssh_user} cluster_type="worker"
+${s} ansible_ssh_private_key_file=keys/worker_${idx}.pem ansible_user=${ssh_user} cluster_type="worker" hostname="worker${idx}"
 %{ endfor ~}
 
 

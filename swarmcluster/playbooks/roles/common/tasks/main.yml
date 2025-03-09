@@ -33,3 +33,17 @@
 - name: Install Docker Module for Python
   pip:
     name: docker
+
+- name: Set Hostname
+  hostname:
+    name: "{{ hostname }}"
+    use: "debian"
+
+- name: reboot
+  reboot:
+    reboot_timeout: 300
+    msg: "Rebooting the system to apply hostname changes"
+
+- name: debug 
+  debug:
+    msg: "Hostname has been set to {{ hostname }}"

@@ -1,78 +1,104 @@
 ---
 
-- name: Setup All Managers with Common 
-  hosts: manager
-  become: true
-  gather_facts: true
-  roles:
-    - common
+# - name: Setup All Managers with Common 
+#   hosts: manager
+#   become: true
+#   gather_facts: true
+#   roles:
+#     - common
 
-- name: Setup All Workers with Common
-  hosts: worker
-  become: true
-  gather_facts: true
-  roles:
-    - common
+# - name: Setup All Workers with Common
+#   hosts: worker
+#   become: true
+#   gather_facts: true
+#   roles:
+#     - common
 
 
-- name: Setup lead manager
+# - name: Setup lead manager
+#   hosts: manager[0]
+#   become: true
+#   gather_facts: true
+#   tasks:
+#     - name: Setup SW
+#       docker_swarm:
+#         state: present
+#         advertise_addr: "{{ ansible_host }}"
+#       register: swarm_facts_result
+    
+#     - name: Set Worker Token
+#       set_fact:
+#         worker_token: "{{ swarm_facts_result.swarm_facts.JoinTokens.Worker }}"
+#         manager_token: "{{ swarm_facts_result.swarm_facts.JoinTokens.Manager }}"
+
+#     - name: Debug
+#       debug:
+#         var: worker_token
+    
+#     - name: Debug
+#       debug:
+#         var: manager_token
+    
+
+# - name: Setup other managers
+#   hosts: manager[1:]
+#   become: true
+#   gather_facts: true
+#   tasks:
+#     - name: Retrieve worker and manager tokens from the lead manager
+#       set_fact:
+#         worker_token: "{{hostvars[groups['manager'][0]].worker_token}}"
+#         manager_token: "{{hostvars[groups['manager'][0]].manager_token}}"
+      
+#     - name: join swarm as manager
+#       docker_swarm:
+#         state: join
+#         advertise_addr: "{{ ansible_host }}"
+#         join_token: "{{ manager_token }}"
+#         remote_addrs: "{{groups['manager'][0]}}"
+
+# - name: Setup The Workers
+#   hosts: worker
+#   become: true
+#   gather_facts: true
+#   tasks:
+#     - name: Retrieve worker and manager tokens from the lead manager
+#       set_fact:
+#         worker_token: "{{hostvars[groups['manager'][0]].worker_token}}"
+#         manager_token: "{{hostvars[groups['manager'][0]].manager_token}}"
+    
+#     - name: join swarm as worker
+#       docker_swarm:
+#         state: join
+#         advertise_addr: "{{ ansible_host }}"
+#         join_token: "{{ worker_token }}"
+#         remote_addrs: "{{groups['manager'][0]}}"
+    
+   
+- name: Set Node Tags
   hosts: manager[0]
   become: true
   gather_facts: true
+  vars:
+    infraconfig: "{{ lookup('file', '../../config.yml') | from_yaml }}"
   tasks:
-    - name: Setup SW
-      docker_swarm:
-        state: present
-        advertise_addr: "{{ ansible_host }}"
-      register: swarm_facts_result
-    
-    - name: Set Worker Token
-      set_fact:
-        worker_token: "{{ swarm_facts_result.swarm_facts.JoinTokens.Worker }}"
-        manager_token: "{{ swarm_facts_result.swarm_facts.JoinTokens.Manager }}"
 
-    - name: Debug
+    - name: d
       debug:
-        var: worker_token
-    
-    - name: Debug
+        msg: "{{ (infraconfig.managers  | selectattr('name', 'equalto', 'manager0') | first).cloud }}"
+
+    - name: debug
       debug:
-        var: manager_token
-    
+        msg: "Setting Tags {{hostvars[item].hostname}}"
+      with_items: "{{ groups['manager'] }}"
 
-- name: Setup other managers
-  hosts: manager[1:]
-  become: true
-  gather_facts: true
-  tasks:
-    - name: Retrieve worker and manager tokens from the lead manager
-      set_fact:
-        worker_token: "{{hostvars[groups['manager'][0]].worker_token}}"
-        manager_token: "{{hostvars[groups['manager'][0]].manager_token}}"
-      
-    - name: join swarm as manager
-      docker_swarm:
-        state: join
-        advertise_addr: "{{ ansible_host }}"
-        join_token: "{{ manager_token }}"
-        remote_addrs: "{{groups['manager'][0]}}"
-
-- name: Setup The Workers
-  hosts: worker
-  become: true
-  gather_facts: true
-  tasks:
-    - name: Retrieve worker and manager tokens from the lead manager
-      set_fact:
-        worker_token: "{{hostvars[groups['manager'][0]].worker_token}}"
-        manager_token: "{{hostvars[groups['manager'][0]].manager_token}}"
+    # - name: Set Manager Tag
+    #   docker_node:
+    #     hostname: "ip-172-31-3-159"
+    #     labels:
+    #       role: manager
+    #       env: prod
     
-    - name: join swarm as worker
-      docker_swarm:
-        state: join
-        advertise_addr: "{{ ansible_host }}"
-        join_token: "{{ worker_token }}"
-        remote_addrs: "{{groups['manager'][0]}}"
-    
-   
-   
+    # - name: debug
+    #   debug:
+    #     var: inventory_hostname

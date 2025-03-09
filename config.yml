@@ -17,6 +17,10 @@ jumpbox:
   cloud: "aws"
 
 managers:
+  - name: "manager0"
+    instance_type: "t2.micro"
+    cloud: "awsj"
+  
   - name: "manager1"
     instance_type: "t2.micro"
     cloud: "aws"
@@ -25,20 +29,16 @@ managers:
     instance_type: "t2.micro"
     cloud: "aws"
   
-  - name: "manager3"
+workers:    
+  - name: "worker0"
     instance_type: "t2.micro"
     cloud: "aws"
   
-workers:    
   - name: "worker1"
     instance_type: "t2.micro"
     cloud: "aws"
-  
-  - name: "worker2"
-    instance_type: "t2.micro"
-    cloud: "aws"
 
-  - name: "worker3"
+  - name: "worker2"
     instance_type: "t2.micro"
     cloud: "aws"
 

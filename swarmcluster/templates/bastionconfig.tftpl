@@ -1,6 +1,11 @@
+Host *
+    StrictHostKeyChecking accept-new
+
+
 Host bastion_${cluster_name}
  Hostname ${jumpbox_ip}
  User ${ssh_user}
  IdentityFile "${full_path_to_private_key}"
  StrictHostKeyChecking no
  UserKnownHostsFile /dev/null
+ IdentitiesOnly yes
