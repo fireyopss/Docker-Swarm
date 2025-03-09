@@ -1,26 +1,23 @@
 ---
-# - name: Setup
-#   hosts: jumpbox
-#   become: true
-#   tasks:
-#     - name: Update apt cache
-#       apt:
-#         update_cache: yes
+- name: Setup
+  hosts: jumpbox
+  become: true
+  gather_facts: true
+  roles:
+    - common
 
 
 - name: Setup
   hosts: manager
   become: true
-  tasks:
-    - name: Update apt cache
-      apt:
-        update_cache: yes
+  gather_facts: true
+  roles:
+    - common
 
 
 - name: Setup
   hosts: worker
   become: true
-  tasks:
-    - name: Update apt cache
-      apt:
-        update_cache: yes
+  gather_facts: true
+  roles:
+    - common
