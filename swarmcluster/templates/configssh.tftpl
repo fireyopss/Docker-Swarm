@@ -1,0 +1,21 @@
+Host jumpbox
+  Hostname ${jumpbox_ip}
+  User ${ssh_user}
+  IdentityFile ~/.ssh/jumpbox.pem
+
+%{ for idx,s in manager_ips ~}
+Host manager_${idx}
+  Hostname ${s}
+  User ${ssh_user}
+  IdentityFile ~/.ssh/manager_${idx}.pem
+%{ endfor ~}
+
+
+
+%{ for idx,s in worker_ips ~}
+Host worker_${idx}
+  Hostname ${s}
+  User ${ssh_user}
+  IdentityFile ~/.ssh/worker_${idx}.pem
+  
+%{ endfor ~}

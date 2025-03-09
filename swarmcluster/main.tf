@@ -235,6 +235,7 @@ resource "local_file" "worker_private_key" {
 
 resource "local_file" "ansible_hosts" {
     content  = templatefile("${path.module}/templates/hosts.tftpl", {
+        cluter_name = var.swarm_details.cluster_name,
         jumpbox_ip = aws_instance.jumpbox.public_ip,
         manager_ips = [for instance in aws_instance.swarm_managers : instance.public_ip],
         worker_ips = [for instance in aws_instance.worker_nodes : instance.public_ip],
@@ -243,3 +244,95 @@ resource "local_file" "ansible_hosts" {
     filename = "${path.module}/out/ansible_hosts"
 }
 
+resource "local_file" "jumpboxsshconfigfile" {
+        content  = templatefile("${path.module}/templates/configssh.tftpl", {
+
+      jumpbox_ip = aws_instance.jumpbox.public_ip,
+        manager_ips = [for instance in aws_instance.swarm_managers : instance.public_ip],
+        worker_ips = [for instance in aws_instance.worker_nodes : instance.public_ip],
+        ssh_user = "ubuntu"
+        })
+            filename = "${path.module}/out/jumpbox_ssh_config"
+
+}
+
+resource "local_file" "bastion_ssh_config" {
+    content= templatefile("${path.module}/templates/bastionconfig.tftpl",{
+        cluster_name = var.swarm_details.cluster_name,
+        jumpbox_ip = aws_instance.jumpbox.public_ip,
+        full_path_to_private_key = abspath(local_file.jumpbox_private_key.filename),
+        ssh_user = "ubuntu"
+    })
+    filename = "${path.module}/playbooks/keys/bastion_ssh_config"
+}
+
+//Note: this could be unsecure, however for convenience we will to do, its better to use a ssh forward agent
+# resource "null_resource" "upload_worker_keys_to_bastion" {
+
+#     for_each = {for idx,instance in var.swarm_details.workers : idx=> instance }
+
+    
+
+#      provisioner "file" {
+#     content =  tls_private_key.worker_key[each.key].private_key_pem
+#     destination = "/home/ubuntu/.ssh/worker_${each.key}.pem"
+#   }
+  
+
+
+#   connection {
+#     type        = "ssh"
+#     user = "ubuntu"
+#     private_key = tls_private_key.jumpbox_key.private_key_pem
+#     host = aws_instance.jumpbox.public_ip
+#   }
+
+# }
+
+# resource "null_resource" "upload_manager_keys_to_bastion" {
+
+#     for_each = {for idx,instance in var.swarm_details.managers : idx=> instance }
+
+   
+
+#      provisioner "file" {
+#     content =  tls_private_key.worker_key[each.key].private_key_pem
+#     destination = "/home/ubuntu/.ssh/manager_${each.key}.pem"
+#   }
+  
+
+    
+#   connection {
+#     type        = "ssh"
+#     user = "ubuntu"
+#     private_key = tls_private_key.jumpbox_key.private_key_pem
+#     host = aws_instance.jumpbox.public_ip
+#   }
+
+# }
+
+
+//this is for convenience
+# resource "null_resource" "upload_ssh_config_to_bastion" {
+#     depends_on = [null_resource.upload_worker_keys_to_bastion]
+
+#     triggers = {
+#     always_run = "${timestamp()}"
+#     }
+
+#     provisioner "file" {
+#     source = local_file.jumpboxsshconfigfile.filename
+#     destination = "/home/ubuntu/.ssh/config"
+#     }
+    
+#     provisioner "remote-exec" {
+#       script = "${path.module}/scripts/fixsshconfig.sh"
+#     }
+
+#      connection {
+#     type        = "ssh"
+#     user = "ubuntu"
+#     private_key = tls_private_key.jumpbox_key.private_key_pem
+#     host = aws_instance.jumpbox.public_ip
+#   }
+# }

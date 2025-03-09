@@ -1,0 +1,27 @@
+Host jumpbox
+  Hostname 52.47.103.200
+  User ubuntu
+  IdentityFile ~/.ssh/jumpbox.pem
+
+Host manager_0
+  Hostname 51.44.170.119
+  User ubuntu
+  IdentityFile ~/.ssh/manager_0.pem
+
+
+
+Host worker_0
+  Hostname 15.237.180.180
+  User ubuntu
+  IdentityFile ~/.ssh/worker_0.pem
+  
+Host worker_1
+  Hostname 51.44.108.147
+  User ubuntu
+  IdentityFile ~/.ssh/worker_1.pem
+  
+Host worker_2
+  Hostname 13.38.55.46
+  User ubuntu
+  IdentityFile ~/.ssh/worker_2.pem
+  

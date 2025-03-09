@@ -17,7 +17,7 @@ ${s} ansible_ssh_private_key_file=keys/worker_${idx}.pem ansible_user=${ssh_user
 ansible_ssh_common_args='-o IdentitiesOnly=yes'
 
 [manager:vars]
-ansible_ssh_common_args='-o ProxyJump=${ssh_user}@${jumpbox_ip} -o IdentitiesOnly=yes'
+ansible_ssh_common_args='-F keys/bastion_ssh_config -o ProxyJump=bastion_${cluter_name} -i keys/jumpbox.pem -o IdentitiesOnly=yes'
 
 [worker:vars]
-ansible_ssh_common_args='-o ProxyJump=${ssh_user}@${jumpbox_ip} -o IdentitiesOnly=yes'
+ansible_ssh_common_args='-F keys/bastion_ssh_config -o ProxyJump=bastion_${cluter_name} -i keys/jumpbox.pem -o IdentitiesOnly=yes'

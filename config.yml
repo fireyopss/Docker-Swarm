@@ -69,11 +69,11 @@ security:
         cidr_blocks:
           - "worker.ip"
       
-      # - from_port: 7946
-      #   to_port: 7946
-      #   protocol: "udp"
-      #   cidr_blocks:
-      #     - "worker.ip"
+      - from_port: 7946
+        to_port: 7946
+        protocol: "udp"
+        cidr_blocks:
+          - "worker.ip"
 
     egress:
       - from_port: 0
