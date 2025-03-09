@@ -106,6 +106,16 @@ resource "aws_security_group_rule" "manager_egress_rules" {
 
 }
 
+//allows manager to communicate with jumpbox
+resource "aws_security_group_rule" "manager_ingress_2377_docker" {
+    type              = "ingress"
+    security_group_id = aws_security_group.manager_sg.id
+    source_security_group_id = aws_security_group.manager_sg.id
+    from_port         = 2377
+    protocol          = "tcp"
+    to_port           = 2377
+}
+
 resource "aws_security_group_rule" "manager_ingress_rules" {
 
   for_each = {for idx,rule in var.swarm_details.security.manager.ingress : idx=> rule}
