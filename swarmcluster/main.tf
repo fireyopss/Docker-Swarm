@@ -20,31 +20,62 @@ resource "aws_security_group" "jumpbox_sg" {
     
     description = "${var.swarm_details.cluster_name} jumpbox sg"
 
-    dynamic "egress" {
-        for_each = var.swarm_details.security.jumpbox.egress
-        content {
-            from_port =  egress.value.from_port
-            to_port = egress.value.to_port
-            protocol = egress.value.protocol
-            cidr_blocks = egress.value.cidr_blocks
-        }
-    }
+    # dynamic "egress" {
+    #     for_each = var.swarm_details.security.jumpbox.egress
+    #     content {
+    #         from_port =  egress.value.from_port
+    #         to_port = egress.value.to_port
+    #         protocol = egress.value.protocol
+    #         cidr_blocks = egress.value.cidr_blocks
+    #     }
+    # }
 
-    dynamic "ingress" {
-        for_each = var.swarm_details.security.jumpbox.ingress
-        content {
-            from_port =  ingress.value.from_port
-            to_port = ingress.value.to_port
-            protocol = ingress.value.protocol
-            cidr_blocks = ingress.value.cidr_blocks
-        }
+    # dynamic "ingress" {
+    #     for_each = var.swarm_details.security.jumpbox.ingress
+    #     content {
+    #         from_port =  ingress.value.from_port
+    #         to_port = ingress.value.to_port
+    #         protocol = ingress.value.protocol
+    #         cidr_blocks = ingress.value.cidr_blocks
+    #     }
       
-    }
+    # }
 
     tags = {
       ClusterName = "${var.swarm_details.cluster_name}"
     }
 }
+
+resource "aws_security_group_rule" "jumpbox_egress_rules" {
+
+  for_each = {for idx,rule in var.swarm_details.security.jumpbox.egress : idx=> rule}
+
+   type              = "egress"
+
+  security_group_id = aws_security_group.jumpbox_sg.id
+  cidr_blocks       = each.value.cidr_blocks
+  from_port         = each.value.from_port
+  protocol          = each.value.protocol
+  to_port           = each.value.to_port
+
+}
+
+resource "aws_security_group_rule" "jumpbox_ingress_rules" {
+
+  for_each = {for idx,rule in var.swarm_details.security.jumpbox.ingress : idx=> rule}
+
+   type              = "ingress"
+
+  security_group_id = aws_security_group.jumpbox_sg.id
+  cidr_blocks       = each.value.cidr_blocks
+  from_port         = each.value.from_port
+  protocol          = each.value.protocol
+  to_port           = each.value.to_port
+
+}
+
+
+
 
 resource "aws_instance" "jumpbox" {
     ami = var.swarm_details.ami
@@ -55,6 +86,11 @@ resource "aws_instance" "jumpbox" {
         Name = "${var.swarm_details.jumpbox.name}"
         ClusterName = "${var.swarm_details.cluster_name}"
     }
+}
+
+resource "local_file" "jumpbox_private_key" {
+  content  = tls_private_key.jumpbox_key.private_key_pem
+  filename = "${path.module}/jumpbox.pem"
 }
 
 resource "tls_private_key" "manager_key" {
@@ -76,32 +112,41 @@ resource "aws_key_pair" "manager_key" {
 resource "aws_security_group" "manager_sg" {
     description = "${var.swarm_details.cluster_name} manager sg"
 
-       dynamic "ingress" {
-        for_each = var.swarm_details.security.manager.ingress
-        content {
-            from_port =  ingress.value.from_port
-            to_port = ingress.value.to_port
-            protocol = ingress.value.protocol
-             cidr_blocks = flatten([
-                for cidr in ingress.value.cidr_blocks : 
-                cidr == "jumpbox.ip" ? ["${aws_instance.jumpbox.public_ip}/32"] :
-                cidr == "worker.ip" ? [for w in aws_instance.worker_nodes : "${w.public_ip}/32"] :
-                [cidr]
-                ])
-        }
-      
-    }
 
-    dynamic "egress" {
-        for_each = var.swarm_details.security.manager.egress
-        content {
-            from_port =  egress.value.from_port
-            to_port = egress.value.to_port
-            protocol = egress.value.protocol
-            cidr_blocks = egress.value.cidr_blocks
-        }
-      
-    }
+}
+
+resource "aws_security_group_rule" "manager_egress_rules" {
+
+  for_each = {for idx,rule in var.swarm_details.security.manager.egress : idx=> rule}
+
+   type              = "egress"
+
+  security_group_id = aws_security_group.manager_sg.id
+  cidr_blocks       = each.value.cidr_blocks
+  from_port         = each.value.from_port
+  protocol          = each.value.protocol
+  to_port           = each.value.to_port
+
+}
+
+resource "aws_security_group_rule" "manager_ingress_rules" {
+
+  for_each = {for idx,rule in var.swarm_details.security.manager.ingress : idx=> rule}
+
+   type              = "ingress"
+
+  security_group_id = aws_security_group.manager_sg.id
+  cidr_blocks       = flatten([
+    for cidr in each.value.cidr_blocks : 
+    cidr == "jumpbox.ip" ? ["${aws_instance.jumpbox.public_ip}/32"] :
+    cidr == "worker.ip" ? [for w in aws_instance.worker_nodes : "${w.public_ip}/32"] :
+    [cidr]
+    
+  ])
+  from_port         = each.value.from_port
+  protocol          = each.value.protocol
+  to_port           = each.value.to_port
+
 }
 
 
@@ -117,6 +162,13 @@ resource "aws_instance" "swarm_managers" {
         ManagerIndex = "${each.key}"
     }
 }
+
+resource "local_file" "manager_private_key" {
+  for_each = aws_key_pair.manager_key
+  content  = tls_private_key.manager_key[each.key].private_key_pem
+  filename = "${path.module}/manager_${each.key}.pem"
+}
+
 
 resource "tls_private_key" "worker_key" {
   for_each =  {for idx,instance in var.swarm_details.workers : idx=> instance if var.swarm_details.ssh_key_options.generate_auto}
@@ -138,33 +190,39 @@ resource "aws_security_group" "worker_sg" {
     description = "${var.swarm_details.cluster_name} worker sg"
 
 
-    dynamic "ingress" {
-        for_each = var.swarm_details.security.worker.ingress
-        content {
-            from_port =  ingress.value.from_port
-            to_port = ingress.value.to_port
-            protocol = ingress.value.protocol
-            cidr_blocks = [
-                for cidr in ingress.value.cidr_blocks :
-                cidr == "jumpbox.ip" ? "${aws_instance.jumpbox.public_ip}/32" : cidr
-            ]
+}
 
-            
-        }
-      
-    }
+resource "aws_security_group_rule" "worker_ingress_rules" {
 
+  for_each = {for idx,rule in var.swarm_details.security.worker.ingress : idx=> rule}
 
-    dynamic "egress" {
-        for_each = var.swarm_details.security.worker.egress
-        content {
-            from_port =  egress.value.from_port
-            to_port = egress.value.to_port
-            protocol = egress.value.protocol
-            cidr_blocks = egress.value.cidr_blocks
-        }
-      
-    }
+   type              = "ingress"
+
+  security_group_id = aws_security_group.worker_sg.id
+  cidr_blocks       = flatten([
+    for cidr in each.value.cidr_blocks : 
+    cidr == "jumpbox.ip" ? ["${aws_instance.jumpbox.public_ip}/32"] :
+    cidr == "manager.ip" ? [for w in aws_instance.swarm_managers : "${w.public_ip}/32"] :
+    [cidr]
+    
+  ])
+  from_port         = each.value.from_port
+  protocol          = each.value.protocol
+  to_port           = each.value.to_port
+
+}
+
+resource "aws_security_group_rule" "worker_egress_rules" {
+
+  for_each = {for idx,rule in var.swarm_details.security.worker.egress : idx=> rule}
+
+   type              = "egress"
+
+  security_group_id = aws_security_group.worker_sg.id
+  cidr_blocks       = each.value.cidr_blocks
+  from_port         = each.value.from_port
+  protocol          = each.value.protocol
+  to_port           = each.value.to_port
 
 }
 
