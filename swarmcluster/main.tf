@@ -20,26 +20,6 @@ resource "aws_security_group" "jumpbox_sg" {
     
     description = "${var.swarm_details.cluster_name} jumpbox sg"
 
-    # dynamic "egress" {
-    #     for_each = var.swarm_details.security.jumpbox.egress
-    #     content {
-    #         from_port =  egress.value.from_port
-    #         to_port = egress.value.to_port
-    #         protocol = egress.value.protocol
-    #         cidr_blocks = egress.value.cidr_blocks
-    #     }
-    # }
-
-    # dynamic "ingress" {
-    #     for_each = var.swarm_details.security.jumpbox.ingress
-    #     content {
-    #         from_port =  ingress.value.from_port
-    #         to_port = ingress.value.to_port
-    #         protocol = ingress.value.protocol
-    #         cidr_blocks = ingress.value.cidr_blocks
-    #     }
-      
-    # }
 
     tags = {
       ClusterName = "${var.swarm_details.cluster_name}"
@@ -236,18 +216,21 @@ resource "aws_instance" "worker_nodes" {
 resource "local_file" "jumpbox_private_key" {
   content  = tls_private_key.jumpbox_key.private_key_pem
   filename = "${path.module}/playbooks/keys/jumpbox.pem"
+  file_permission = "0400"
 }
 
 resource "local_file" "manager_private_key" {
   for_each = aws_key_pair.manager_key
   content  = tls_private_key.manager_key[each.key].private_key_pem
   filename = "${path.module}/playbooks/keys/manager_${each.key}.pem"
+  file_permission = "0400"
 }
 
 resource "local_file" "worker_private_key" {
   for_each = aws_key_pair.worker_key
   content  = tls_private_key.worker_key[each.key].private_key_pem
   filename = "${path.module}/playbooks/keys/worker_${each.key}.pem"
+    file_permission = "0400"
 }
 
 resource "local_file" "ansible_hosts" {
@@ -260,8 +243,3 @@ resource "local_file" "ansible_hosts" {
     filename = "${path.module}/out/ansible_hosts"
 }
 
-resource "null_resource" "set_key_permissions" {
-    provisioner "local-exec" {
-        command = "chmod 600 ${path.module}/playbooks/keys/*.pem"
-    }
-}
