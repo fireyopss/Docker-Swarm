@@ -21,6 +21,14 @@ managers:
     instance_type: "t2.micro"
     cloud: "aws"
   
+  - name: "manager2"
+    instance_type: "t2.micro"
+    cloud: "aws"
+  
+  - name: "manager3"
+    instance_type: "t2.micro"
+    cloud: "aws"
+  
 workers:    
   - name: "worker1"
     instance_type: "t2.micro"
@@ -56,6 +64,7 @@ security:
         protocol: "tcp"
         cidr_blocks:
           - "jumpbox.ip"
+          - "92.239.148.217/32"  #tayyabs public ip, only allow ssh from this ip
       
       - from_port: 2377
         to_port: 2377

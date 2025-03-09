@@ -1,23 +1,69 @@
 ---
-- name: Setup
-  hosts: jumpbox
-  become: true
-  gather_facts: true
-  roles:
-    - common
 
-
-- name: Setup
+- name: Setup All Managers with Common 
   hosts: manager
   become: true
   gather_facts: true
   roles:
     - common
 
-
-- name: Setup
+- name: Setup All Workers with Common
   hosts: worker
   become: true
   gather_facts: true
   roles:
     - common
+
+
+- name: Setup lead manager
+  hosts: manager[0]
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Setup SW
+      docker_swarm:
+        state: present
+        advertise_addr: "{{ ansible_host }}"
+      register: swarm_facts_result
+    
+    - name: Set Worker Token
+      set_fact:
+        worker_token: "{{ swarm_facts_result.swarm_facts.JoinTokens.Worker }}"
+        manager_token: "{{ swarm_facts_result.swarm_facts.JoinTokens.Manager }}"
+
+    - name: Debug
+      debug:
+        var: worker_token
+    
+    - name: Debug
+      debug:
+        var: manager_token
+    
+
+- name: Setup other managers
+  hosts: manager[1:]
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Retrieve worker and manager tokens from the lead manager
+      set_fact:
+        worker_token: "{{hostvars[groups['manager'][0]].worker_token}}"
+        manager_token: "{{hostvars[groups['manager'][0]].manager_token}}"
+    
+    - name: debug
+      debug:
+        var: ansible_host
+    
+    - name: remoteadd
+      debug:
+        var: "{{groups['manager'][0]}}"
+  
+    - name: join swarm as manager
+      docker_swarm:
+        state: join
+        advertise_addr: "{{ ansible_host }}"
+        join_token: "{{ manager_token }}"
+        remote_addrs: "{{groups['manager'][0]}}"
+    
+   
+   
