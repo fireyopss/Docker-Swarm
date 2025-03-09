@@ -1,11 +1,11 @@
 ---
 
-# - name: Setup All Managers with Common 
-#   hosts: manager
-#   become: true
-#   gather_facts: true
-#   roles:
-#     - common
+- name: Setup All Managers with Common 
+  hosts: manager
+  become: true
+  gather_facts: true
+  roles:
+    - common
 
 - name: Setup All Workers with Common
   hosts: worker
@@ -40,22 +40,22 @@
         var: manager_token
     
 
-# - name: Setup other managers
-#   hosts: manager[1:]
-#   become: true
-#   gather_facts: true
-#   tasks:
-#     - name: Retrieve worker and manager tokens from the lead manager
-#       set_fact:
-#         worker_token: "{{hostvars[groups['manager'][0]].worker_token}}"
-#         manager_token: "{{hostvars[groups['manager'][0]].manager_token}}"
+- name: Setup other managers
+  hosts: manager[1:]
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Retrieve worker and manager tokens from the lead manager
+      set_fact:
+        worker_token: "{{hostvars[groups['manager'][0]].worker_token}}"
+        manager_token: "{{hostvars[groups['manager'][0]].manager_token}}"
       
-#     - name: join swarm as manager
-#       docker_swarm:
-#         state: join
-#         advertise_addr: "{{ ansible_host }}"
-#         join_token: "{{ manager_token }}"
-#         remote_addrs: "{{groups['manager'][0]}}"
+    - name: join swarm as manager
+      docker_swarm:
+        state: join
+        advertise_addr: "{{ ansible_host }}"
+        join_token: "{{ manager_token }}"
+        remote_addrs: "{{groups['manager'][0]}}"
 
 - name: Setup The Workers
   hosts: worker
