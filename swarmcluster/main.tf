@@ -1,7 +1,26 @@
-
-provider "aws" {
-    region = var.swarm_details.region
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+   linode = {
+      source = "linode/linode"
+      version = "2.34.2"
+    }
+       digitalocean = {
+      source = "digitalocean/digitalocean"
+      version = "2.49.1"
+    }
+  }
 }
+
+provider "aws" {}
+
+provider "linode" {}
+
+provider "digitalocean" {}
+
 
 resource "tls_private_key" "jumpbox_key" {
   algorithm = "RSA"
@@ -71,14 +90,14 @@ resource "aws_instance" "jumpbox" {
 
 
 resource "tls_private_key" "manager_key" {
-  for_each =  {for idx,instance in var.swarm_details.managers : idx=> instance if var.swarm_details.ssh_key_options.generate_auto}
+  for_each =  {for idx,instance in var.manager_nodes_aws : idx=> instance if var.swarm_details.ssh_key_options.generate_auto}
   algorithm = "RSA"
   rsa_bits  = 4096
  
 }
 
 resource "aws_key_pair" "manager_key" {
-  for_each =  {for idx,instance in var.swarm_details.managers : idx=> instance if var.swarm_details.ssh_key_options.generate_auto}
+  for_each =  {for idx,instance in var.manager_nodes_aws : idx=> instance if var.swarm_details.ssh_key_options.generate_auto}
   key_name   = "${each.value.name}-key"
   public_key = tls_private_key.manager_key[each.key].public_key_openssh
   tags = {
@@ -148,7 +167,7 @@ resource "aws_security_group_rule" "manager_ingress_rules" {
 
 
 resource "aws_instance" "swarm_managers" {
-    for_each =  {for idx,instance in var.swarm_details.managers : idx=> instance}
+    for_each =  {for idx,instance in var.manager_nodes_aws : idx=> instance}
     ami = var.swarm_details.ami
     instance_type = each.value.instance_type
     key_name = aws_key_pair.manager_key[each.key].key_name
@@ -164,13 +183,13 @@ resource "aws_instance" "swarm_managers" {
 
 
 resource "tls_private_key" "worker_key" {
-  for_each =  {for idx,instance in var.swarm_details.workers : idx=> instance if var.swarm_details.ssh_key_options.generate_auto}
+  for_each =  {for idx,instance in var.worker_nodes_aws : idx=> instance if var.swarm_details.ssh_key_options.generate_auto}
     algorithm = "RSA"   
     rsa_bits  = 4096
 }
 
 resource "aws_key_pair" "worker_key" {
-  for_each =  {for idx,instance in var.swarm_details.workers : idx=> instance if var.swarm_details.ssh_key_options.generate_auto}
+  for_each =  {for idx,instance in var.worker_nodes_aws : idx=> instance if var.swarm_details.ssh_key_options.generate_auto}
   key_name   = "${each.value.name}-key"
   public_key = tls_private_key.worker_key[each.key].public_key_openssh
   tags = {
@@ -220,7 +239,7 @@ resource "aws_security_group_rule" "worker_egress_rules" {
 }
 
 resource "aws_instance" "worker_nodes" {
-    for_each =  {for idx,instance in var.swarm_details.workers : idx=> instance}
+    for_each =  {for idx,instance in var.worker_nodes_aws : idx=> instance}
     ami = var.swarm_details.ami
     instance_type = each.value.instance_type
     key_name = aws_key_pair.worker_key[each.key].key_name
@@ -286,73 +305,26 @@ resource "local_file" "bastion_ssh_config" {
     filename = "${path.module}/playbooks/keys/bastion_ssh_config"
 }
 
-//Note: this could be unsecure, however for convenience we will to do, its better to use a ssh forward agent
-# resource "null_resource" "upload_worker_keys_to_bastion" {
 
-#     for_each = {for idx,instance in var.swarm_details.workers : idx=> instance }
+resource "linode_sshkey" "foo" {
+  label = "foo"
+  ssh_key = chomp(file("~/.ssh/id_rsa.pub"))
+}
 
-    
 
-#      provisioner "file" {
-#     content =  tls_private_key.worker_key[each.key].private_key_pem
-#     destination = "/home/ubuntu/.ssh/worker_${each.key}.pem"
-#   }
+# provider "digitalocean" {
+#   token = ""
   
-
-
-#   connection {
-#     type        = "ssh"
-#     user = "ubuntu"
-#     private_key = tls_private_key.jumpbox_key.private_key_pem
-#     host = aws_instance.jumpbox.public_ip
-#   }
-
-# }
-
-# resource "null_resource" "upload_manager_keys_to_bastion" {
-
-#     for_each = {for idx,instance in var.swarm_details.managers : idx=> instance }
-
-   
-
-#      provisioner "file" {
-#     content =  tls_private_key.worker_key[each.key].private_key_pem
-#     destination = "/home/ubuntu/.ssh/manager_${each.key}.pem"
-#   }
-  
-
-    
-#   connection {
-#     type        = "ssh"
-#     user = "ubuntu"
-#     private_key = tls_private_key.jumpbox_key.private_key_pem
-#     host = aws_instance.jumpbox.public_ip
-#   }
-
 # }
 
 
-//this is for convenience
-# resource "null_resource" "upload_ssh_config_to_bastion" {
-#     depends_on = [null_resource.upload_worker_keys_to_bastion]
+# resource "tls_private_key" "do_ssh_key" {
+#   algorithm = "RSA"
+#   rsa_bits  = 4096
+# }
 
-#     triggers = {
-#     always_run = "${timestamp()}"
-#     }
 
-#     provisioner "file" {
-#     source = local_file.jumpboxsshconfigfile.filename
-#     destination = "/home/ubuntu/.ssh/config"
-#     }
-    
-#     provisioner "remote-exec" {
-#       script = "${path.module}/scripts/fixsshconfig.sh"
-#     }
-
-#      connection {
-#     type        = "ssh"
-#     user = "ubuntu"
-#     private_key = tls_private_key.jumpbox_key.private_key_pem
-#     host = aws_instance.jumpbox.public_ip
-#   }
+# resource "digitalocean_ssh_key" "default" {
+#   name       = "Terraform Example"
+#   public_key = tls_private_key.do_ssh_key.public_key_openssh
 # }

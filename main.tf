@@ -8,6 +8,10 @@ terraform {
       source = "digitalocean/digitalocean"
       version = "2.49.1"
     }
+     linode = {
+      source = "linode/linode"
+      version = "2.34.2"
+    }
     tls = {
       source  = "hashicorp/tls"
       version = "4.0.6"
@@ -26,6 +30,14 @@ variable "do_token" {
 
 provider "digitalocean" {
   token = var.do_token
+}
+
+variable "linode_token" {
+  type = string
+}
+
+provider "linode" {
+  token = var.linode_token
 }
 
 locals {
@@ -47,10 +59,12 @@ module "swarmcluster" {
 
   providers = {
     aws = aws
-    tls = tls
-    
+    linode = linode
   }
+
 }
+
+
 
 output "debug1" {
   value = module.swarmcluster.debug1
