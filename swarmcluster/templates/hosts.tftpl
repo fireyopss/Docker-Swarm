@@ -4,12 +4,12 @@ ${jumpbox_ip} ansible_ssh_private_key_file=keys/jumpbox.pem ansible_user=${ssh_u
 
 [manager]
 %{ for idx,s in manager_ips ~}
-${s} ansible_ssh_private_key_file=keys/manager_${idx}.pem ansible_user=${ssh_user} cluster_type="manager" hostname="manager${idx}"
+${s} ansible_ssh_private_key_file=keys/manager_${managers_config[idx].name}_${managers_config[idx].cloud}.pem ansible_user=${managers_config[idx].user} cluster_type="manager" hostname="${managers_config[idx].name}"  cloud="${managers_config[idx].cloud}"
 %{ endfor ~}
 
 [worker]
 %{ for idx,s in worker_ips ~}
-${s} ansible_ssh_private_key_file=keys/worker_${idx}.pem ansible_user=${ssh_user} cluster_type="worker" hostname="worker${idx}"
+${s} ansible_ssh_private_key_file=keys/worker_${workers_config[idx].name}_${workers_config[idx].cloud}.pem ansible_user=${workers_config[idx].user} cluster_type="worker" hostname="${workers_config[idx].name}" cloud="${workers_config[idx].cloud}"
 %{ endfor ~}
 
 

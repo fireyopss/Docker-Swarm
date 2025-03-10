@@ -78,22 +78,25 @@
     infraconfig: "{{ lookup('file', '../../config.yml') | from_yaml }}"
   tasks:
 
-    - name: d
-      debug:
-        msg: "{{ (infraconfig.managers  | selectattr('name', 'equalto', 'manager0') | first).cloud }}"
+  
 
-    - name: debug
-      debug:
-        msg: "Setting Tags {{hostvars[item].hostname}}"
-      with_items: "{{ groups['manager'] }}"
+    - name: Set docker node labels for managers
+      docker_node:
+        hostname: "{{item.name}}"
+        labels:
+          role: manager
+          cloud: "{{item.cloud}}"
 
-    # - name: Set Manager Tag
-    #   docker_node:
-    #     hostname: "ip-172-31-3-159"
-    #     labels:
-    #       role: manager
-    #       env: prod
-    
-    # - name: debug
-    #   debug:
-    #     var: inventory_hostname
+      with_items: "{{ infraconfig.managers }}"
+      ignore_errors: yes
+
+  
+    - name: Set docker node labels for workers
+      docker_node:
+        hostname: "{{item.name}}"
+        labels:
+          role: worker
+          cloud: "{{item.cloud}}"
+
+      with_items: "{{ infraconfig.workers }}"
+      ignore_errors: yes
