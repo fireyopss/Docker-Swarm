@@ -13,12 +13,12 @@ ssh_key_options:
 
 jumpbox:
   name: "jumpbox"
-  instance_type: "t2.micro"
+  instance_type: "t2.nano"
   cloud: "aws"
 
 managers:
   - name: "manager10"
-    instance_type: "t2.micro"
+    instance_type: "t2.nano"
     cloud: "aws"
     user: "ubuntu"
   
@@ -27,7 +27,7 @@ managers:
   #   cloud: "aws"
   
   - name: "manager2"
-    instance_type: "t2.micro"
+    instance_type: "t2.nano"
     cloud: "aws"
     user: "ubuntu"
   
@@ -63,7 +63,7 @@ managers:
 
 workers:    
   - name: "worker0"
-    instance_type: "t2.micro"
+    instance_type: "t2.nano"
     cloud: "aws"
     user: "ubuntu"
   
