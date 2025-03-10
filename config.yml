@@ -2,8 +2,8 @@
 environment: "production"
 cluster_name: "liveclipper_cluster"
 
-region: "eu-west-3"
-ami: "ami-04a4acda26ca36de0"
+aws_region: "eu-west-3"
+
 
 ssh_key_options:
   generate_auto: true # auto-generate ssh keys and keeps them in state file
@@ -14,87 +14,52 @@ ssh_key_options:
 jumpbox:
   name: "jumpbox"
   instance_type: "t2.nano"
+  user: "ubuntu"
   cloud: "aws"
+  image: "ami-04a4acda26ca36de0"
 
 managers:
-  - name: "manager10"
+  - name: "manager1"
     instance_type: "t2.nano"
     cloud: "aws"
     user: "ubuntu"
-  
-  # - name: "manager1"
-  #   instance_type: "t2.micro"
-  #   cloud: "aws"
+    image: "ami-04a4acda26ca36de0"
   
   - name: "manager2"
-    instance_type: "t2.nano"
-    cloud: "aws"
-    user: "ubuntu"
+    instance_type: "s-1vcpu-1gb"
+    cloud: "do"
+    region: "nyc2"
+    user: "root"
+    image: "ubuntu-20-04-x64"
   
   - name: "manager3"
-    instance_type: "s-1vcpu-1gb"
-    cloud: "do"
-    region: "nyc2"
-    image: "ubuntu-20-04-x64"
-    user: "root"
-  
-  - name: "manager5"
-    instance_type: "s-1vcpu-1gb"
-    cloud: "do"
-    region: "nyc2"
-    image: "ubuntu-20-04-x64"
-    user: "root"
-  
-  - name: "manager11"
     instance_type: "g6-nanode-1"
     cloud: "linode"
     region: "us-east"
     user: "root"
     image: "linode/ubuntu22.04"
   
-  - name: "manager12"
-    instance_type: "g6-nanode-1"
-    cloud: "linode"
-    region: "us-east"
-    user: "root"
-    image: "linode/ubuntu22.04"
-
-  
-
 workers:    
-  - name: "worker0"
+  - name: "worker1"
     instance_type: "t2.nano"
     cloud: "aws"
     user: "ubuntu"
-  
-  - name: "worker1"
-    instance_type: "s-1vcpu-1gb"
-    cloud: "do"
-    region: "nyc2"
-    image: "ubuntu-20-04-x64"
-    user: "root"
+    image: "ami-04a4acda26ca36de0"
   
   - name: "worker2"
     instance_type: "s-1vcpu-1gb"
     cloud: "do"
     region: "nyc2"
-    image: "ubuntu-20-04-x64"
     user: "root"
+    image: "ubuntu-20-04-x64"
+
   
-  - name: "worker12"
+  - name: "worker3"
     instance_type: "g6-nanode-1"
     cloud: "linode"
     region: "us-east"
     user: "root"
     image: "linode/ubuntu22.04"
-
-  # - name: "worker2"
-  #   instance_type: "t2.micro"
-  #   cloud: "aws"
-  
-  # - name: "worker3"
-  #   instance_type: "t2.micro"
-  #   cloud: "do"
 
 
 security:
