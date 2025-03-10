@@ -52,9 +52,26 @@ module "swarmcluster" {
     for instance in local.swarm_details.managers : instance.name => instance
       if instance.cloud == "aws"
   }
+  manager_nodes_do = {
+    for instance in local.swarm_details.managers : instance.name => instance
+      if instance.cloud == "do"
+  }
+  manager_nodes_linode = {
+    for instance in local.swarm_details.managers : instance.name => instance
+      if instance.cloud == "linode"
+  }
   worker_nodes_aws = {
     for instance in local.swarm_details.workers : instance.name => instance
       if instance.cloud == "aws"
+  }
+  worker_nodes_do = {
+    for instance in local.swarm_details.workers : instance.name => instance
+      if instance.cloud == "do"
+  }
+
+  worker_nodes_linode = {
+    for instance in local.swarm_details.workers : instance.name => instance
+      if instance.cloud == "linode"
   }
 
   providers = {

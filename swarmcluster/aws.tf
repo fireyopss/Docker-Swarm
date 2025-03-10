@@ -15,12 +15,6 @@ terraform {
   }
 }
 
-provider "aws" {}
-
-provider "linode" {}
-
-provider "digitalocean" {}
-
 
 resource "tls_private_key" "jumpbox_key" {
   algorithm = "RSA"
@@ -154,8 +148,16 @@ resource "aws_security_group_rule" "manager_ingress_rules" {
   cidr_blocks       = flatten([
     for cidr in each.value.cidr_blocks : 
     cidr == "jumpbox.ip" ? ["${aws_instance.jumpbox.public_ip}/32"] :
-    cidr == "manager.ip" ? [for w in aws_instance.swarm_managers : "${w.public_ip}/32"] :
-    cidr == "worker.ip" ? [for w in aws_instance.worker_nodes : "${w.public_ip}/32"] :
+    cidr == "manager.ip" ? flatten([
+      [for w in aws_instance.swarm_managers : "${w.public_ip}/32"],
+      [for w in digitalocean_droplet.manager_nodes_do : "${w.ipv4_address}/32"],
+      [for w in linode_instance.manager_nodes_linode : "${join("", w.ipv4)}/32"]
+    ]):
+    cidr == "worker.ip" ? flatten([
+       [for w in aws_instance.worker_nodes : "${w.public_ip}/32"],
+        [for w in digitalocean_droplet.worker_nodes_do : "${w.ipv4_address}/32"],
+        [for w in linode_instance.worker_nodes_linode : "${join("", w.ipv4)}/32"]
+    ]) :
     [cidr]
     
   ])
@@ -214,7 +216,11 @@ resource "aws_security_group_rule" "worker_ingress_rules" {
   cidr_blocks       = flatten([
     for cidr in each.value.cidr_blocks : 
     cidr == "jumpbox.ip" ? ["${aws_instance.jumpbox.public_ip}/32"] :
-    cidr == "manager.ip" ? [for w in aws_instance.swarm_managers : "${w.public_ip}/32"] :
+    cidr == "manager.ip" ? flatten([
+      [for w in aws_instance.swarm_managers : "${w.public_ip}/32"],
+      [for w in digitalocean_droplet.manager_nodes_do : "${w.ipv4_address}/32"],
+      [for w in linode_instance.manager_nodes_linode : "${join("", w.ipv4)}/32"]
+    ]) :
     [cidr]
     
   ])
@@ -258,26 +264,24 @@ resource "local_file" "jumpbox_private_key" {
   file_permission = "0400"
 }
 
-resource "local_file" "manager_private_key" {
-  for_each = aws_key_pair.manager_key
-  content  = tls_private_key.manager_key[each.key].private_key_pem
-  filename = "${path.module}/playbooks/keys/manager_${each.key}.pem"
-  file_permission = "0400"
-}
 
-resource "local_file" "worker_private_key" {
-  for_each = aws_key_pair.worker_key
-  content  = tls_private_key.worker_key[each.key].private_key_pem
-  filename = "${path.module}/playbooks/keys/worker_${each.key}.pem"
-    file_permission = "0400"
-}
 
 resource "local_file" "ansible_hosts" {
     content  = templatefile("${path.module}/templates/hosts.tftpl", {
         cluter_name = var.swarm_details.cluster_name,
         jumpbox_ip = aws_instance.jumpbox.public_ip,
-        manager_ips = [for instance in aws_instance.swarm_managers : instance.public_ip],
-        worker_ips = [for instance in aws_instance.worker_nodes : instance.public_ip],
+        managers_config = var.swarm_details.managers,
+        workers_config = var.swarm_details.workers,
+        manager_ips = flatten([
+           [for instance in aws_instance.swarm_managers : instance.public_ip],
+           [for droplet in digitalocean_droplet.manager_nodes_do : droplet.ipv4_address],
+           [for instance in linode_instance.manager_nodes_linode : instance.ipv4]
+        ]),
+        worker_ips = flatten([
+          [for instance in aws_instance.worker_nodes : instance.public_ip],
+          [for droplet in digitalocean_droplet.worker_nodes_do : droplet.ipv4_address],
+          [for instance in linode_instance.worker_nodes_linode : instance.ipv4]
+        ]),
         ssh_user = "ubuntu"
     })
     filename = "${path.module}/out/ansible_hosts"
@@ -306,10 +310,10 @@ resource "local_file" "bastion_ssh_config" {
 }
 
 
-resource "linode_sshkey" "foo" {
-  label = "foo"
-  ssh_key = chomp(file("~/.ssh/id_rsa.pub"))
-}
+# resource "linode_sshkey" "foo" {
+#   label = "foo"
+#   ssh_key = chomp(file("~/.ssh/id_rsa.pub"))
+# }
 
 
 # provider "digitalocean" {

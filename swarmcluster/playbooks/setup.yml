@@ -1,18 +1,13 @@
 ---
 
-- name: Setup All Managers with Common 
-  hosts: manager
+- name: Setup All Managers and workers with Common 
+  hosts: manager, worker
   become: true
   gather_facts: true
   roles:
     - common
 
-- name: Setup All Workers with Common
-  hosts: worker
-  become: true
-  gather_facts: true
-  roles:
-    - common
+
 
 
 - name: Setup lead manager

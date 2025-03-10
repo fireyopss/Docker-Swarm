@@ -17,31 +17,76 @@ jumpbox:
   cloud: "aws"
 
 managers:
-  - name: "manager0"
+  - name: "manager10"
     instance_type: "t2.micro"
     cloud: "aws"
+    user: "ubuntu"
   
-  - name: "manager1"
-    instance_type: "t2.micro"
-    cloud: "aws"
+  # - name: "manager1"
+  #   instance_type: "t2.micro"
+  #   cloud: "aws"
   
   - name: "manager2"
     instance_type: "t2.micro"
     cloud: "aws"
+    user: "ubuntu"
   
   - name: "manager3"
-    instance_type: "t2.micro"
+    instance_type: "s-1vcpu-1gb"
     cloud: "do"
+    region: "nyc2"
+    image: "ubuntu-20-04-x64"
+    user: "root"
+  
+  - name: "manager5"
+    instance_type: "s-1vcpu-1gb"
+    cloud: "do"
+    region: "nyc2"
+    image: "ubuntu-20-04-x64"
+    user: "root"
+  
+  - name: "manager11"
+    instance_type: "g6-nanode-1"
+    cloud: "linode"
+    region: "us-east"
+    user: "root"
+    image: "linode/ubuntu22.04"
+  
+  - name: "manager12"
+    instance_type: "g6-nanode-1"
+    cloud: "linode"
+    region: "us-east"
+    user: "root"
+    image: "linode/ubuntu22.04"
+
   
 
 workers:    
   - name: "worker0"
     instance_type: "t2.micro"
     cloud: "aws"
+    user: "ubuntu"
   
   - name: "worker1"
-    instance_type: "t2.micro"
+    instance_type: "s-1vcpu-1gb"
     cloud: "do"
+    region: "nyc2"
+    image: "ubuntu-20-04-x64"
+    user: "root"
+  
+  - name: "worker2"
+    instance_type: "s-1vcpu-1gb"
+    cloud: "do"
+    region: "nyc2"
+    image: "ubuntu-20-04-x64"
+    user: "root"
+  
+  - name: "worker12"
+    instance_type: "g6-nanode-1"
+    cloud: "linode"
+    region: "us-east"
+    user: "root"
+    image: "linode/ubuntu22.04"
 
   # - name: "worker2"
   #   instance_type: "t2.micro"
