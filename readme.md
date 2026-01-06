@@ -1,89 +1,237 @@
+# Multi-Cloud Docker Swarm
 
+Provision a Docker Swarm cluster across AWS, DigitalOcean, and Linode using Terraform and Ansible—all configured through a single YAML file.
 
-Docker Swarm Cluster (AWS) Provisioned using terraform and ansible using config yaml file.
+## Features
 
-This Docker-Swarm Code can provision a multi cloud docker swarm cluster across 3 different cloud provides AWS, Linode and DigitalOcean
+- **Multi-cloud support** - Deploy nodes across AWS, DigitalOcean, and Linode in a single cluster
+- **Configuration-driven** - Define your entire infrastructure in `config.yml`
+- **Secure by default** - All SSH connections route through a jumpbox/bastion host
+- **Automatic SSH keys** - Generate keys automatically or bring your own
+- **Flexible node placement** - Mix and match clouds for managers and workers
 
-Everything is powered by the config.yml
+## Prerequisites
 
----
+- [Terraform](https://www.terraform.io/) >= 1.0
+- [Ansible](https://www.ansible.com/) >= 2.9
+- Cloud provider credentials:
+  - AWS credentials configured (`aws configure`)
+  - DigitalOcean API token
+  - Linode API token
+
+## Quick Start
+
+1. **Clone and configure**
+   ```bash
+   git clone <repo-url>
+   cd Docker-Swarm
+   ```
+
+2. **Edit `config.yml`** to define your cluster (see Configuration below)
+
+3. **Deploy infrastructure**
+   ```bash
+   terraform init
+   terraform apply \
+     -var="do_token=YOUR_DIGITALOCEAN_TOKEN" \
+     -var="linode_token=YOUR_LINODE_TOKEN"
+   ```
+
+4. **Run Ansible to initialize the swarm**
+   ```bash
+   ansible-playbook -i swarmcluster/out/hosts swarmcluster/playbooks/setup.yml
+   ```
+
+## Configuration
+
+All infrastructure is defined in `config.yml`:
+
+### Basic Settings
+
+```yaml
 environment: "production"
-cluster_name: "liveclipper_cluster"
+cluster_name: "my_cluster"
+aws_region: "eu-west-3"
+```
 
-region: "eu-west-3"
-ami: "ami-04a4acda26ca36de0"
+### SSH Keys
 
+```yaml
 ssh_key_options:
-  generate_auto: true # auto-generate ssh keys and keeps them in state file
-  jumpbox_key_path: ""
+  generate_auto: true   # Auto-generate and store in Terraform state
+  jumpbox_key_path: ""  # Or specify paths to existing keys
   worker_key_path: ""
   manager_key_path: ""
+```
 
-The ssh keys are automated if true, otherwise will use the keys specified by the user.
+### Jumpbox (Bastion Host)
 
+The jumpbox acts as a secure gateway—all SSH connections to cluster nodes pass through it.
 
-Everything ssh conneciton must go through a jumpbox otherwise known as a bastion node, this is to ensure the connections are secure and do not rely on any individual developers computer.
-
+```yaml
 jumpbox:
   name: "jumpbox"
   instance_type: "t2.nano"
+  user: "ubuntu"
   cloud: "aws"
+  image: "ami-04a4acda26ca36de0"
+```
 
-the config above describes the cloud the jumpbox lives in and the instance type it uses, currently only aws is supported for the jumpbox
+> Currently, the jumpbox must be on AWS.
 
+### Manager Nodes
 
-The manager nodes config is an array of nodes for example
-
+```yaml
 managers:
-  - name: "manager10"
+  - name: "manager1"
     instance_type: "t2.nano"
     cloud: "aws"
     user: "ubuntu"
- - name: "manager3"
+    image: "ami-04a4acda26ca36de0"
+
+  - name: "manager2"
     instance_type: "s-1vcpu-1gb"
     cloud: "do"
     region: "nyc2"
-    image: "ubuntu-20-04-x64"
     user: "root"
-- name: "manager11"
+    image: "ubuntu-20-04-x64"
+
+  - name: "manager3"
     instance_type: "g6-nanode-1"
     cloud: "linode"
     region: "us-east"
     user: "root"
     image: "linode/ubuntu22.04"
+```
 
-You can see a range of config options, cloud specifies which cloud it belongs to and user defines the default user, for example in aws ubuntu, ubuntu is the default user however in digitalocean its root.
+### Worker Nodes
 
-Workers config is similar
-
-workers:    
-  - name: "worker0"
+```yaml
+workers:
+  - name: "worker1"
     instance_type: "t2.nano"
     cloud: "aws"
     user: "ubuntu"
+    image: "ami-04a4acda26ca36de0"
 
-The security config is interesting as it controls what ports are open and which ips can access it
+  - name: "worker2"
+    instance_type: "s-1vcpu-1gb"
+    cloud: "do"
+    region: "nyc2"
+    user: "root"
+    image: "ubuntu-20-04-x64"
+```
 
+### Node Configuration Reference
+
+| Field | Description |
+|-------|-------------|
+| `name` | Unique node identifier (becomes hostname) |
+| `instance_type` | Cloud-specific instance size |
+| `cloud` | `aws`, `do`, or `linode` |
+| `user` | SSH user (`ubuntu` for AWS, `root` for DO/Linode) |
+| `image` | AMI ID (AWS) or image slug (DO/Linode) |
+| `region` | Required for DO and Linode nodes |
+
+### Security Rules
+
+Control network access with ingress/egress rules:
+
+```yaml
 security:
   jumpbox:
+    ingress:
+      - from_port: 22
+        to_port: 22
+        protocol: "tcp"
+        cidr_blocks:
+          - "YOUR.PUBLIC.IP/32"  # Restrict SSH to your IP
     egress:
       - from_port: 0
         to_port: 0
         protocol: "-1"
         cidr_blocks:
           - "0.0.0.0/0"
+
+  manager:
     ingress:
       - from_port: 22
         to_port: 22
         protocol: "tcp"
         cidr_blocks:
-          - "92.239.148.217/32" 
-the example above specifiys the jumpbox can access the internet, 
-and anyone with the ip 92.239.148.217/32 can access port 22 needed for ssh, you may change this to your ip or open it up to the world, it is generally recommended not to do this.
+          - "jumpbox.ip"
+      - from_port: 2377
+        to_port: 2377
+        protocol: "tcp"
+        cidr_blocks:
+          - "worker.ip"
+          - "manager.ip"
+    # ... additional rules
 
+  worker:
+    ingress:
+      - from_port: 22
+        to_port: 22
+        protocol: "tcp"
+        cidr_blocks:
+          - "jumpbox.ip"
+    # ... additional rules
+```
 
-After changing the cluster_name, specifying the region, and ami int he config.yml you may run
+Special CIDR values:
+- `jumpbox.ip` - Resolves to jumpbox public IP
+- `manager.ip` - Resolves to all manager IPs
+- `worker.ip` - Resolves to all worker IPs
 
-terraform apply to spin up the cluster
+## Outputs
 
-this will generate a ansible_host file in the swarmcluster/out/ folder
+After `terraform apply`, you'll get:
+
+- **jumpboxip** - Public IP of the bastion host
+- **manager_ips** - List of manager node IPs
+- **worker_ips** - List of worker node IPs
+
+Generated files in `swarmcluster/out/`:
+- `hosts` - Ansible inventory
+- `jumpbox_ssh_config` - SSH config for bastion access
+
+## Connecting to Nodes
+
+Use the generated SSH config to connect through the jumpbox:
+
+```bash
+ssh -F swarmcluster/out/jumpbox_ssh_config manager1
+```
+
+## Architecture
+
+```
+                    ┌─────────────┐
+                    │   Jumpbox   │
+                    │    (AWS)    │
+                    └──────┬──────┘
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+   ┌────┴────┐       ┌─────┴────┐       ┌─────┴────┐
+   │ Manager │       │ Manager  │       │ Manager  │
+   │  (AWS)  │       │  (DO)    │       │ (Linode) │
+   └────┬────┘       └────┬─────┘       └────┬─────┘
+        │                 │                  │
+        └─────────────────┼──────────────────┘
+                          │
+        ┌─────────────────┼──────────────────┐
+        │                 │                  │
+   ┌────┴────┐       ┌────┴────┐       ┌─────┴────┐
+   │ Worker  │       │ Worker  │       │  Worker  │
+   │  (AWS)  │       │  (DO)   │       │ (Linode) │
+   └─────────┘       └─────────┘       └──────────┘
+```
+
+## Cleanup
+
+```bash
+terraform destroy \
+  -var="do_token=YOUR_DIGITALOCEAN_TOKEN" \
+  -var="linode_token=YOUR_LINODE_TOKEN"
+```
